@@ -3,7 +3,7 @@
 //
 
 //g++ -std=c++11 test.cpp
-#include <algorithm>
+//#include <algorithm>
 #include <iostream>
 #include <cstring>
 #include <ios>
@@ -216,7 +216,7 @@ int main(int argc, char const *argv[]){
     }
     std::vector<std::pair<std::string,unsigned int>> finalRankMap(fileCountMap.begin(),fileCountMap.end());
     sort( finalRankMap.begin(), finalRankMap.end(),
-          []( const auto & lhs, const auto & rhs )
+          []( const std::pair<std::string,unsigned int>& lhs, const std::pair<std::string,unsigned int> & rhs )
           { return lhs.second > rhs.second; } );
     for(auto const& ent : finalRankMap){
         cout<<docContainer[stoi(ent.first)]<<endl;
@@ -244,6 +244,40 @@ void loadIndexInMemory(string dest) {
     }
     in.close();
 }
+
+/*
+stringmap readFileinVector(string fileName) {
+    fileName = sourceDir+separator()+fileName;
+    ifstream in(fileName);
+    string s;
+    string s1;
+    vector<string> sep;
+    while (in >> s){
+
+        if(stopwords.find(s)==stopwords.end()){
+            Porter2Stemmer::trim(s);
+            vector<string> sep = split(s,' ');
+            for(string s : sep){
+                s1=s;
+                Porter2Stemmer::stem(s);
+                if(stopwords.find(s)!=stopwords.end())
+                    continue;
+                if(s==""){
+                    continue;
+                }
+                if(localmap.find(s)==localmap.end()){
+                    localmap.insert({s,1});
+                }
+                else{
+                    localmap[s]=localmap[s]+1;
+                }
+            }
+
+
+        }
+    }
+    return localmap;
+}*/
 
 stringmap readFileinVector(string fileName) {
     fileName = sourceDir+separator()+fileName;
