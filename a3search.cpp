@@ -22,14 +22,14 @@
 using  namespace std;
 
 typedef vector<string> StringVector;
-typedef std::unordered_map<std::string,int> stringmap;
+typedef std::map<std::string,unsigned int> stringmap;
 typedef std::map<std::string,int> orderedMap;
-typedef std::unordered_map<std::string,unsigned int> StringUnIntMap;
+typedef std::map<std::string,unsigned int> StringUnIntMap;
 typedef std::map<std::string,unsigned int> OStringUnIntMap;
 typedef std::map<std::string,string> stringOrderedMap;
 typedef std::unordered_map<char,unordered_map<std::string,int>> charAlphabetMap;
 typedef std::map<string,unordered_map<std::string,int>> StringMultiMap;
-stringmap localmap;
+StringUnIntMap localmap;
 StringUnIntMap addressmap;
 string sourceDir,destDir;
 stringOrderedMap tempIndexMap;
@@ -54,7 +54,7 @@ inline char separator()
     return kPathSeparator;
 }
 unordered_set<std::string> stopwords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during", "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having", "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's", "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more", "most", "mustn't", "my", "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours", "out", "over", "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some", "such", "than", "that", "that's", "the", "their", "theirs", "them", "themselves", "then", "there", "there's", "these", "they", "they'd", "they'll", "they're", "they've", "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were", "weren't", "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom", "why", "why's", "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"};
-stringmap readFileinVector(string fileName);
+StringUnIntMap readFileinVector(string fileName);
 
 void writeIndexHashInFile(string folder);
 
@@ -119,7 +119,7 @@ void createIndexFile(string source,string dest){
     writeIndexHashInFile(dest);
 }
 
-void writeMapInMemory(stringmap map, const string &file) {
+void writeMapInMemory(StringUnIntMap map, const string &file) {
     string data;
     for(auto const& ent : map){
         if(tempIndexMap.find(ent.first)==tempIndexMap.end()){
@@ -193,8 +193,8 @@ int searchKeyword(string keyword){
 }
 
 int main(int argc, char const *argv[]){
-    addressmap.reserve(171000);
-    localmap.reserve(171000);
+   // addressmap.reserve(171000);
+   // localmap.reserve(171000);
     sourceDir=argv[1];
     destDir = argv[2];
     createIndexFile(sourceDir,destDir);
@@ -279,35 +279,49 @@ stringmap readFileinVector(string fileName) {
     return localmap;
 }*/
 
-stringmap readFileinVector(string fileName) {
+StringUnIntMap readFileinVector(string fileName) {
     fileName = sourceDir+separator()+fileName;
     ifstream in(fileName);
     string s;
     string s1;
     vector<string> sep;
-    while (in >> s){
-
-        if(stopwords.find(s)==stopwords.end()){
-            Porter2Stemmer::trim(s);
-            vector<string> sep = split(s,' ');
-            for(string s : sep){
-                s1=s;
-                Porter2Stemmer::stem(s);
-                if(stopwords.find(s)!=stopwords.end())
-                    continue;
-                if(s==""){
-                    continue;
-                }
-                if(localmap.find(s)==localmap.end()){
-                    localmap.insert({s,1});
-                }
-                else{
-                    localmap[s]=localmap[s]+1;
+    std::vector<char> buffer (1024,0);
+    while (!in.eof()) {
+        in.read(buffer.data(), buffer.size());
+        bool isWord = false;
+        s = "";
+        for (short i = 0; i < buffer.size(); i++) {
+            if ((buffer[i] >= 'a' ) && (buffer[i] <= 'z')) {
+                s = s + buffer[i];
+            }
+            else if (buffer[i] >= 'A' && buffer[i] <= 'Z') {
+                s = s + buffer[i];
+            }
+            else{
+                if(s!=""){
+                    isWord=true;
                 }
             }
-
-
+        if(!isWord){
+            continue;
         }
+        if (stopwords.find(s) == stopwords.end()) {
+            //Porter2Stemmer::trim(s);
+            std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+            //vector<string> sep = split(s, ' ');
+            //for (string s : sep) {
+                s1 = s;
+                Porter2Stemmer::stem(s);
+                if (localmap.find(s) == localmap.end()) {
+                    localmap.insert({s, 1});
+                } else {
+                    localmap[s] = localmap[s] + 1;
+                }
+            //}
+        }
+            s="";
+            isWord= false;
+    }
     }
     return localmap;
 }
