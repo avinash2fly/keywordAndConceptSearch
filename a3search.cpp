@@ -38,6 +38,7 @@ const string HASHFILE = "indexHash.txt";
 const string DOCFILE = "DocHash.txt";
 const string FILE_WORD_COUNT = "FileCount.txt";
 typedef map<unsigned int,string> IntStringMap;
+short countx=0;
 OStringUnIntMap fileCountMap;
 bool isConcept=0;
 double concept_weight=0.0;
@@ -105,6 +106,7 @@ void createIndexFile(string source,string dest){
     if(dir)
         return;
     StringVector listOffiles = listFileFromDir(source);
+    closedir(dir);
     string filename;
     ifstream in;
     string fileX;
@@ -119,9 +121,11 @@ void createIndexFile(string source,string dest){
         in.close();
         docContainer[i]=file;
         readFileinVector(file);
-        if(fileSize>500000){
+        if(fileSize>5000000){
             writeMapinFileNew(dest,fileX);
             tempIndexMap.clear();
+            countx++;
+            fileSize=0;
         }
         writeMapInMemory(localmap,to_string(i));
         localmap.clear();
@@ -149,8 +153,16 @@ void writeMapInMemory(StringUnIntMap map, const string &file) {
 
 void writeMapinFileNew(string dir, const string &ogFile) {
     //mkdir(dir.c_str());
-    createDirectory(dir);
-    string fileName = dir + separator() + FILE_WORD_COUNT;
+    DIR* dirx = opendir(dir.c_str());
+    if(!dirx)
+        createDirectory(dir);
+    closedir(dirx);
+    string direc = dir + separator() + "CountIndex";
+    dirx = opendir(direc.c_str());
+    if(!dirx)
+        createDirectory(direc);
+    closedir(dirx);
+    string fileName = direc + separator() + to_string(countx);
     ofstream out (fileName,ios::binary );
     for(auto const& ent : tempIndexMap){
         addressmap[ent.first]=out.tellp();
