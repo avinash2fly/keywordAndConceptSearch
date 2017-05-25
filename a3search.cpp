@@ -27,11 +27,11 @@ typedef std::unordered_map<std::string,unsigned int> stringmap;
 typedef std::map<std::string,int> orderedMap;
 typedef std::unordered_map<std::string,unsigned int> StringUnIntMap;
 typedef std::map<std::string,unsigned int> OStringUnIntMap;
-typedef std::map<std::string,string> stringOrderedMap;
+typedef std::map<std::string,string*> stringOrderedMap;
 typedef std::unordered_map<char,unordered_map<std::string,int>> charAlphabetMap;
 typedef std::map<string,unordered_map<std::string,int>> StringMultiMap;
 StringUnIntMap localmap;
-StringUnIntMap addressmap=localmap;
+//StringUnIntMap localmap=localmap;
 string sourceDir,destDir;
 stringOrderedMap tempIndexMap;
 const string HASHFILE = "indexHash.txt";
@@ -121,7 +121,7 @@ void createIndexFile(string source,string dest){
         in.close();
         docContainer[i]=file;
         readFileinVector(file);
-        if(fileSize>5000000){
+        if(fileSize>5000000&&false){
             writeMapinFileNew(dest,fileX);
             tempIndexMap.clear();
             countx++;
@@ -140,12 +140,12 @@ void writeMapInMemory(StringUnIntMap map, const string &file) {
     for(auto const& ent : map){
         if(tempIndexMap.find(ent.first)==tempIndexMap.end()){
             data= file + ':' + to_string(ent.second);
-            tempIndexMap.insert({ent.first,data});
+            tempIndexMap.insert({ent.first,new string(data)});
         }
         else{
-            data = tempIndexMap[ent.first];
+            data = *tempIndexMap[ent.first];
             data = data + '|' + file + ':' + to_string(ent.second);
-            tempIndexMap[ent.first]=data;
+            *tempIndexMap[ent.first]=data;
         }
     }
 
@@ -165,9 +165,10 @@ void writeMapinFileNew(string dir, const string &ogFile) {
     string fileName = direc + separator() + to_string(countx);
     ofstream out (fileName,ios::binary );
     for(auto const& ent : tempIndexMap){
-        addressmap[ent.first]=out.tellp();
+        localmap[ent.first]=out.tellp();
         out << ent.second << endl;
         out.rdbuf();
+        delete[] ent.second;
     }
     out.close();
 }
@@ -176,7 +177,7 @@ void writeIndexHashInFile(string folder)
 {
     string fileLocation = folder + separator() + HASHFILE;
     ofstream out(fileLocation, ios::binary);
-    for(auto const &ent2 : addressmap){
+    for(auto const &ent2 : localmap){
         out << ent2.first << '=' << ent2.second<<endl;
     }
     out.close();
@@ -191,9 +192,9 @@ void writeIndexHashInFile(string folder)
 int searchKeyword(string keyword){
     std::transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
     Porter2Stemmer::stem(keyword);
-    if(addressmap.find(keyword)==addressmap.end())
+    if(localmap.find(keyword)==localmap.end())
         return -1;
-    unsigned int index = addressmap[keyword];
+    unsigned int index = localmap[keyword];
     string fileLocation=destDir+separator()+FILE_WORD_COUNT;
     ifstream in(fileLocation,ios::binary);
     string s;
@@ -217,7 +218,7 @@ int searchKeyword(string keyword){
 }
 
 int main(int argc, char const *argv[]){
-   // addressmap.reserve(171000);
+   // localmap.reserve(171000);
    // localmap.reserve(171000);
     sourceDir=argv[1];
     destDir = argv[2];
@@ -249,7 +250,7 @@ int main(int argc, char const *argv[]){
 }
 
 void loadIndexInMemory(string dest) {
-    addressmap.clear();
+    localmap.clear();
     docContainer.clear();
     string fileLocation = dest+separator()+HASHFILE;
     ifstream in(fileLocation,ios::binary);
@@ -257,7 +258,7 @@ void loadIndexInMemory(string dest) {
     vector<string> temp;
     while(getline(in,s)){
         temp=split(s,'=');
-        addressmap[temp[0]]=stoi(temp[1]);
+        localmap[temp[0]]=stoi(temp[1]);
     }
     in.close();
     fileLocation = dest+separator()+DOCFILE;
