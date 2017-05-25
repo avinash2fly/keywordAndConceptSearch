@@ -19,18 +19,19 @@
 #include <sys/stat.h>
 #include "porter2_stemmer.h"
 
+
 using  namespace std;
 
 typedef vector<string> StringVector;
-typedef std::map<std::string,unsigned int> stringmap;
+typedef std::unordered_map<std::string,unsigned int> stringmap;
 typedef std::map<std::string,int> orderedMap;
-typedef std::map<std::string,unsigned int> StringUnIntMap;
+typedef std::unordered_map<std::string,unsigned int> StringUnIntMap;
 typedef std::map<std::string,unsigned int> OStringUnIntMap;
 typedef std::map<std::string,string> stringOrderedMap;
 typedef std::unordered_map<char,unordered_map<std::string,int>> charAlphabetMap;
 typedef std::map<string,unordered_map<std::string,int>> StringMultiMap;
 StringUnIntMap localmap;
-StringUnIntMap addressmap;
+StringUnIntMap addressmap=localmap;
 string sourceDir,destDir;
 stringOrderedMap tempIndexMap;
 const string HASHFILE = "indexHash.txt";
@@ -99,6 +100,7 @@ vector<string> split(string str, char delimiter) {
 }
 
 void createIndexFile(string source,string dest){
+    unsigned int fileSize=0;
     DIR* dir = opendir(dest.c_str());
     if(dir)
         return;
@@ -109,8 +111,18 @@ void createIndexFile(string source,string dest){
     orderedMap wordmap;
     short i = 0;
     for(auto const &file : listOffiles){
+        filename = source+separator()+file;
+        in.open(filename,ios::binary|ios::ate);
+        //cout << in.good()<<endl;
+        //cout << in.tellg();
+        fileSize = fileSize + in.tellg();
+        in.close();
         docContainer[i]=file;
         readFileinVector(file);
+        if(fileSize>500000){
+            writeMapinFileNew(dest,fileX);
+            tempIndexMap.clear();
+        }
         writeMapInMemory(localmap,to_string(i));
         localmap.clear();
         i++;
