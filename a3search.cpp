@@ -121,7 +121,7 @@ void createIndexFile(string source,string dest){
         in.close();
         docContainer[i]=file;
         orderedMap localmap =  readFileinVector(file);
-        if(fileSize>50 &&tempIndexMap.size()>0 ){
+        if(fileSize>20000000 &&tempIndexMap.size()>0 ){
             writeMapinFileNew(dest,fileX);
             tempIndexMap.clear();
             tmpFile.push_back(to_string(countx));
@@ -136,10 +136,18 @@ void createIndexFile(string source,string dest){
     writeMapinFileNew(dest,fileX);
     tmpFile.push_back(to_string(countx));
     string f1 = tmpFile[0];
-    for(short i =1 ; i<tmpFile.size();i++){
-        string x(dest+separator()+CountIndex+separator()+f1);
-        string y(dest+separator()+CountIndex+separator()+tmpFile[i]);
-        f1=sequenceMerge(x,y);
+    if(tmpFile.size()>1)
+    {
+        for(short i =1 ; i<tmpFile.size();i++){
+            string x(dest+separator()+CountIndex+separator()+f1);
+            string y(dest+separator()+CountIndex+separator()+tmpFile[i]);
+            f1=sequenceMerge(x,y);
+        }
+    }
+    else{
+        string z = dest+separator()+CountIndex+separator()+tmpFile[0];
+        string Name = destDir + separator()+CountIndex + separator() + FILE_WORD_COUNT;
+        rename(z.c_str(),Name.c_str());
     }
     writeIndexHashInFile(dest);
 }
