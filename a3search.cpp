@@ -34,6 +34,7 @@ stringOrderedMap tempIndexMap;
 const string HASHFILE = "indexHash.txt";
 const string DOCFILE = "DocHash.txt";
 const string FILE_WORD_COUNT = "FileCount.txt";
+const string CountIndex = "CountIndex";
 typedef map<unsigned int,string> IntStringMap;
 short countx=0;
 OStringUnIntMap fileCountMap;
@@ -54,6 +55,8 @@ inline char separator()
 }
 unordered_set<std::string> stopwords = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during", "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having", "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's", "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more", "most", "mustn't", "my", "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours", "out", "over", "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some", "such", "than", "that", "that's", "the", "their", "theirs", "them", "themselves", "then", "there", "there's", "these", "they", "they'd", "they'll", "they're", "they've", "this", "those", "through", "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were", "weren't", "what", "what's", "when", "when's", "where", "where's", "which", "while", "who", "who's", "whom", "why", "why's", "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"};
 orderedMap readFileinVector(string fileName);
+
+string sequenceMerge(string string1, string string2);
 
 void writeIndexHashInFile(string folder);
 
@@ -108,7 +111,7 @@ void createIndexFile(string source,string dest){
     ifstream in;
     string fileX;
     short i = 0;
-
+    StringVector tmpFile;
     for(auto const &file : listOffiles){
         filename = source+separator()+file;
         in.open(filename,ios::binary|ios::ate);
@@ -118,17 +121,26 @@ void createIndexFile(string source,string dest){
         in.close();
         docContainer[i]=file;
         orderedMap localmap =  readFileinVector(file);
-        if(fileSize>5000000&&false){
+        if(fileSize>50 &&tempIndexMap.size()>0 ){
             writeMapinFileNew(dest,fileX);
             tempIndexMap.clear();
+            tmpFile.push_back(to_string(countx));
             countx++;
             fileSize=0;
         }
         writeMapInMemory(localmap,to_string(i));
+
         localmap.clear();
         i++;
     }
     writeMapinFileNew(dest,fileX);
+    tmpFile.push_back(to_string(countx));
+    string f1 = tmpFile[0];
+    for(short i =1 ; i<tmpFile.size();i++){
+        string x(dest+separator()+CountIndex+separator()+f1);
+        string y(dest+separator()+CountIndex+separator()+tmpFile[i]);
+        f1=sequenceMerge(x,y);
+    }
     writeIndexHashInFile(dest);
 }
 
@@ -156,17 +168,18 @@ void writeMapinFileNew(string dir, const string &ogFile) {
     if(!dirx)
         createDirectory(dir);
     closedir(dirx);
-    /*string direc = dir + separator() + "CountIndex";
+    string direc = dir + separator() + CountIndex;
     dirx = opendir(direc.c_str());
     if(!dirx)
         createDirectory(direc);
-    closedir(dirx);*/
-    //string fileName = direc + separator() + to_string(countx);
-    string fileName = dir + separator() + FILE_WORD_COUNT;
+    closedir(dirx);
+    string fileName = direc + separator() + to_string(countx);
+    //string fileName = dir + separator() + FILE_WORD_COUNT;
     ofstream out (fileName,ios::binary );
     for(auto const& ent : tempIndexMap){
-        addressmap[ent.first]=out.tellp();
-        out << *ent.second << endl;
+        string data = ent.first+"="+*ent.second;
+//        addressmap[ent.first]=out.tellp();
+        out << data << endl;
         out.rdbuf();
         delete ent.second;
     }
@@ -176,10 +189,22 @@ void writeMapinFileNew(string dir, const string &ogFile) {
 void writeIndexHashInFile(string folder)
 {
     string fileLocation = folder + separator() + HASHFILE;
+    string input=destDir + separator()+CountIndex + separator() + FILE_WORD_COUNT;
+    ifstream in(input,ios::binary);
     ofstream out(fileLocation, ios::binary);
-    for(auto const &ent2 : addressmap){
+    /*for(auto const &ent2 : addressmap){
         out << ent2.first << '=' << ent2.second<<endl;
         //delete *ent2.second;
+    }*/
+    string line;
+    int x = in.tellg();
+    while(getline(in,line)){
+        if(line!=""){
+            StringVector s = split(line,'=');
+            out << s[0] << '=' << x<<endl;
+            x=in.tellg();
+        }
+
     }
     out.close();
     fileLocation = folder + separator() + DOCFILE;
@@ -196,12 +221,13 @@ int searchKeyword(string keyword){
     if(addressmap.find(keyword)==addressmap.end())
         return -1;
     unsigned int index = addressmap[keyword];
-    string fileLocation=destDir+separator()+FILE_WORD_COUNT;
+    string fileLocation=destDir+separator()+CountIndex+separator()+FILE_WORD_COUNT;
     ifstream in(fileLocation,ios::binary);
     string s;
     in.seekg(index);
     getline(in,s);
-    vector<string> files = split(s,'|');
+    vector<string> list = split(s,'=');
+    vector<string> files = split(list[1],'|');
     vector<string> flCount;
     OStringUnIntMap tempIndexMap;
     unsigned  int count=0;
@@ -336,7 +362,7 @@ orderedMap readFileinVector(string fileName) {
         if(!isWord){
             continue;
         }
-        if (stopwords.find(s) == stopwords.end()) {
+        if (stopwords.find(s) == stopwords.end() && s.size()>2) {
             //Porter2Stemmer::trim(s);
             std::transform(s.begin(), s.end(), s.begin(), ::tolower);
             //vector<string> sep = split(s, ' ');
@@ -357,4 +383,78 @@ orderedMap readFileinVector(string fileName) {
     }
     }
     return localmap;
+}
+
+string sequenceMerge(string string1, string string2) {
+    ifstream f1(string1,ios::binary);
+    ifstream f2(string2,ios::binary);
+    string z = destDir+separator()+CountIndex + separator() + "temp.txt";
+    ofstream out(z, ios::binary);
+    string line1,line2;
+    string w1,w2;
+    vector<string> x,y;
+    if(f1){
+        getline(f1,line1);
+        x =split(line1,'=');
+        w1=x[0];
+
+    }
+    if(f2){
+        getline(f2,line2);
+        y =split(line2,'=');
+        w2=y[0];
+    }
+    while(f1 && f2){
+        if(w1<w2){
+            out << line1 <<endl;
+            getline(f1,line1);
+            if(line1!=""){
+                x =split(line1,'=');
+                w1=x[0];
+            }
+
+        } else if (w1>w2){
+            out <<line2 << endl;
+            getline(f2,line2);
+            if(line2!=""){
+                y =split(line2,'=');
+                w2=y[0];
+            }
+
+        }
+        else
+        {
+            out << w1 << '=' << x[1]<<'|'<<y[1]<<endl;
+            getline(f1,line1);
+            x =split(line1,'=');
+            if(line1!="")
+                w1=x[0];
+            getline(f2,line2);
+            y =split(line2,'=');
+            if(line2!="")
+                w2=y[0];
+
+        }
+
+    }
+    if(f1){
+        while(getline(f1,line1)){
+            if(line1!="")
+                out <<line1 << endl;
+        }
+    } else{
+        while(getline(f2,line2)){
+            if(line2!="")
+                out <<line2 << endl;
+        }
+
+    }
+    f1.close();
+    f2.close();
+    out.close();
+    remove(string1.c_str());
+    remove(string2.c_str());
+    string Name = destDir + separator()+CountIndex + separator() + FILE_WORD_COUNT;
+    rename(z.c_str(),Name.c_str());
+    return FILE_WORD_COUNT;
 }
